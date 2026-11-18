@@ -1257,9 +1257,7 @@ def _create_terminal(
             if kind == "ephemeral_policy":
                 raise _ClaimRefused(
                     rule or "unexpected_failure",
-                    _bounded_launch_message(
-                        message, f"ephemeral launch failed ({response.status_code})"
-                    ),
+                    message,
                 )
             raise _ClaimRefused(
                 "unexpected_failure",
@@ -1537,27 +1535,29 @@ def _parse_run_step_error(
 
     The run-step endpoint returns a STRUCTURED detail object
     ``{"message", "kind", "terminal_id"}`` so callers read the failure kind and
-    the live terminal as fields. Falls back to the legacy plain-string detail
-    (+ regex terminal-id scrape) when the structured shape is absent, so a
+    the live terminal as fields and bound the display message. Falls back to the
+    legacy plain-string detail (+ regex terminal-id scrape) when the structured shape is absent, so a
     newer client still works against an older server. Callers can disable the
     scrape for untrusted launch text without discarding structured worker ids.
     """
+    fallback = f"status {response.status_code}"
     try:
         payload = response.json()
     except ValueError:
-        fallback = f"status {response.status_code}"
         return None, fallback, None, None
 
     detail = payload.get("detail") if isinstance(payload, dict) else None
     if isinstance(detail, dict):
-        message = detail.get("message") or f"status {response.status_code}"
         kind = detail.get("kind")
-        rule = detail.get("rule", "unexpected_failure") if kind == "ephemeral_policy" else None
+        rule = None
+        if kind == "ephemeral_policy":
+            rule = detail.get("rule", "unexpected_failure")
+            fallback = _claim_launch_error_message(response)
+        message = _bounded_launch_message(detail.get("message"), fallback)
         return kind, message, detail.get("terminal_id"), rule
     if isinstance(detail, str) and detail:
         tid = _terminal_id_from_detail(detail) if scrape_terminal_id else None
         return None, detail, tid, None
-    fallback = f"status {response.status_code}"
     return None, fallback, None, None
 
 
@@ -1714,7 +1714,7 @@ def _extract_error_detail(response: requests.Response, fallback: str) -> str:
     fault surfaced as a crash instead of the typed ``success: False`` envelope
     every caller is written against. Check the type before subscripting.
 
-    Structured details carry an approval-refusal message or lint findings.
+    Structured details carry a bounded approval-refusal message or lint findings.
     Keep accepting string details for callers talking to older servers.
     """
     try:
@@ -1727,8 +1727,8 @@ def _extract_error_detail(response: requests.Response, fallback: str) -> str:
 
     detail = payload.get("detail")
     if isinstance(detail, dict):
-        message = detail.get("message")
-        if isinstance(message, str) and message:
+        message = _bounded_launch_message(detail.get("message"), "")
+        if message:
             return message
         rendered = _render_lint_findings(detail.get("findings"))
         return rendered or fallback
@@ -1883,9 +1883,7 @@ async def _run_step_and_build_result(
         # server-side or has no worker, so this branch makes no claim about it.
         worker_outcome = False
         if kind == "ephemeral_policy":
-            msg = _bounded_launch_message(
-                structured_detail, f"ephemeral launch failed ({response.status_code})"
-            )
+            msg = structured_detail
         # Generic text is only for failures before any worker is known; a launched
         # worker's timeout, error or extraction failure keeps its handoff result.
         elif (

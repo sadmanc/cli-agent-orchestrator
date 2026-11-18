@@ -176,6 +176,7 @@ def test_a_launch_admits_a_measured_version_and_holds_a_pending_one():
 )
 def test_a_launch_refuses_a_version_outside_the_allow_list(version, allow_unverified):
     """The operator opt-in admits pending entries only, never an unknown version."""
+    assert version not in SUPPORTED_KIRO_CLI_VERSIONS, "Use an unlisted Kiro CLI version"
     with pytest.raises(KiroV3UnsupportedVersionError):
         require_launchable_kiro_v3_version(version, allow_unverified=allow_unverified)
 

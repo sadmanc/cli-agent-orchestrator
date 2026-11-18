@@ -119,6 +119,31 @@ def test_an_object_detail_yields_its_message(reader_name):
     assert READERS[reader_name](_response({"detail": REFUSAL}), "FALLBACK") == REFUSAL["message"]
 
 
+def test_run_step_dict_message_is_bounded_and_control_free():
+    response = _response(
+        {
+            "detail": {
+                "kind": "provider_error",
+                "message": "x\x00" + "y" * 4094 + "not relayed",
+                "terminal_id": "abc12345",
+            }
+        }
+    )
+
+    assert _parse_run_step_error(response) == (
+        "provider_error",
+        "x" + "y" * 4094,
+        "abc12345",
+        None,
+    )
+
+
+def test_mcp_dict_message_is_bounded_and_control_free():
+    response = _response({"detail": {**REFUSAL, "message": "x\x00" + "y" * 4094 + "not relayed"}})
+
+    assert _extract_error_detail(response, "FALLBACK") == "x" + "y" * 4094
+
+
 def test_the_mcp_reader_surfaces_an_object_message(reader_name="mcp"):
     """ASSERTED DIRECTLY, not inferred from the CLI's behaviour.
 

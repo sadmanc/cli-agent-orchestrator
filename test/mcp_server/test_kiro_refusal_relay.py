@@ -63,6 +63,7 @@ async def test_helper_probe_refusal_reaches_creator_and_archive(
 ):
     helper = helper_http
     if refusal == "version":
+        assert "3.2.0" not in SUPPORTED_KIRO_CLI_VERSIONS, "Use an unlisted Kiro CLI version"
         (helper.fake / "version").write_text("3.2.0")
         rule, clue = "kiro_v3_unsupported_version", "3.2.0"
     elif refusal == "flag":

@@ -1075,6 +1075,26 @@ async def test_claimed_run_step_4xx_keeps_structured_worker_for_cleanup(
 
 
 @pytest.mark.asyncio
+async def test_claimed_run_step_424_keeps_top_level_terminal_id(monkeypatch):
+    import requests
+
+    response = requests.Response()
+    response.status_code = 424
+    response._content = json.dumps(
+        {"detail": {"message": "failed launch"}, "terminal_id": CHILD}
+    ).encode()
+    monkeypatch.setattr(orchestration.requests, "post", lambda *args, **kwargs: response)
+
+    result = await orchestration._run_step_and_build_result(
+        {"claim_id": "claim"}, "helper", "claude_code", 60, 0
+    )
+
+    assert result.success is False
+    assert result.message == "ephemeral launch failed (424)"
+    assert result.terminal_id == CHILD
+
+
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     "e2_variant", ["omitted", "explicit", "default", "effort_explicit", "effort_default"]
 )
@@ -1222,8 +1242,9 @@ async def test_existing_policy_refusal_output_is_unchanged(launch_http, monkeypa
         ("x" * 100000, "x" * 4096),
         ("\x00" * 5000 + "secret", "ephemeral launch failed (400)"),
         ("line one\n\r\t  line two", "line one line two"),
+        ({"text": "not a message string"}, "ephemeral launch failed (400)"),
     ],
-    ids=["controls", "oversized", "bound-before-filter", "whitespace-runs"],
+    ids=["controls", "oversized", "bound-before-filter", "whitespace-runs", "non-string"],
 )
 async def test_policy_refusal_message_is_bounded_and_control_free(
     launch_http, monkeypatch, path, message, expected

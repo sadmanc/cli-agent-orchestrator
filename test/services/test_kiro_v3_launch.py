@@ -24,6 +24,7 @@ from cli_agent_orchestrator.providers.kiro_capabilities import (
 )
 from cli_agent_orchestrator.providers.kiro_v3_schema import (
     KAS_0_66_70,
+    SUPPORTED_KIRO_CLI_VERSIONS,
     KiroV3Refusal,
     KiroV3UnsupportedVersionError,
     KiroV3UnverifiedVersionError,
@@ -167,6 +168,8 @@ def test_the_opt_in_admits_a_pending_version_with_a_warning_and_a_note(opted_in,
     ],
 )
 def test_the_opt_in_never_admits_a_version_outside_the_allow_list(opted_in, caps):
+    if isinstance(caps, KiroCapabilities):
+        assert caps.version not in SUPPORTED_KIRO_CLI_VERSIONS, "Use an unlisted Kiro CLI version"
     with pytest.raises(KiroV3UnsupportedVersionError):
         require_kiro_v3_admissible(caps, GRANT)
 

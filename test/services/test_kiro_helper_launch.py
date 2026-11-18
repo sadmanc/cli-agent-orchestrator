@@ -41,6 +41,7 @@ from cli_agent_orchestrator.providers.kiro_capabilities import (
 )
 from cli_agent_orchestrator.providers.kiro_launch_home import KiroLaunchRefusal
 from cli_agent_orchestrator.providers.kiro_v3_schema import (
+    SUPPORTED_KIRO_CLI_VERSIONS,
     UNSUPPORTED_VERSION_REMEDY,
     UNVERIFIED_VERSION_REMEDY,
     KiroV3UnsupportedVersionError,
@@ -1325,6 +1326,7 @@ async def test_helper_decided_model_probe_falls_back_before_reporting(
         )
     )
     if final_failure:
+        assert "3.2.0" not in SUPPORTED_KIRO_CLI_VERSIONS, "Use an unlisted Kiro CLI version"
         (kiro.fake / "version").write_text("3.2.0")
         assert (
             await policy_rule(kiro, launch_plan=LaunchPlan(model="decided-model"))

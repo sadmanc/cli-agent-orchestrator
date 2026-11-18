@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- **Orchestration bounds and filters messages from structured HTTP errors** (#1261).
+  Dict messages are limited to the first 4096 characters before control characters
+  are removed and whitespace is normalized. Plain-string errors and the generic
+  message for non-policy claimed launch failures are unchanged.
 - **Memory inspection and fixture hygiene are safer by default** (#1329).
   This resolves #861 Q3: CLI list/show and REST list/show no longer increment
   `access_count` unless `memory.non_accessing_inspection=false`; MCP recall

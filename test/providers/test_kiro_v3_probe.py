@@ -25,6 +25,7 @@ from cli_agent_orchestrator.providers.kiro_capabilities import (
     probe_kiro_capabilities,
     requested_kiro_capabilities,
 )
+from cli_agent_orchestrator.providers.kiro_v3_schema import SUPPORTED_KIRO_CLI_VERSIONS
 
 FIXTURES = Path(__file__).parent / "fixtures"
 HELP = {
@@ -72,6 +73,8 @@ def test_supported_releases_pass_the_v3_probe(version):
     ["kiro-cli 2.38.0\n", "kiro-cli 2.35.0\n", "kiro-cli 3.0.1\n", "kiro-cli 3.2.0\n"],
 )
 def test_an_unknown_version_refuses_v3(version_text):
+    version = version_text.removeprefix("kiro-cli ").strip()
+    assert version not in SUPPORTED_KIRO_CLI_VERSIONS, "Use an unlisted Kiro CLI version"
     with pytest.raises(KiroCapabilityError) as excinfo:
         probe_kiro_capabilities(
             KiroEngine.V3, V3_REQUEST, runner=_runner(version_text=version_text)

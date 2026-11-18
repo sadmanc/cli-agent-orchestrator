@@ -53,6 +53,7 @@ def probe(version, engines="v2|v3"):
 
 @pytest.mark.parametrize("value", [None, True, "Observed", "observed ", 1, {}, []])
 def test_only_exact_observed_setting_admits(value, monkeypatch):
+    assert "3.2.0" not in kiro_v3_schema.SUPPORTED_KIRO_CLI_VERSIONS
     monkeypatch.setattr(settings_service, "_load", lambda: {"kiro": {"v3_admission": value}})
     monkeypatch.setenv("CAO_KIRO_V3_ADMISSION", "observed")
     with pytest.raises(KiroCapabilityError) as err:
@@ -61,6 +62,7 @@ def test_only_exact_observed_setting_admits(value, monkeypatch):
 
 
 def test_missing_setting_is_strict(monkeypatch):
+    assert "3.2.0" not in kiro_v3_schema.SUPPORTED_KIRO_CLI_VERSIONS
     monkeypatch.setattr(settings_service, "_load", lambda: {})
     with pytest.raises(KiroCapabilityError) as err:
         probe("3.2.0")
@@ -426,12 +428,14 @@ def test_non_helper_probe_stays_strict_with_observed_setting(observed):
         output = "kiro-cli 3.2.0" if argv[-1] == "--version" else "--agent-engine v2|v3\n"
         return subprocess.CompletedProcess(argv, 0, output, "")
 
+    assert "3.2.0" not in kiro_v3_schema.SUPPORTED_KIRO_CLI_VERSIONS
     with pytest.raises(KiroCapabilityError) as err:
         probe_kiro_capabilities(KiroEngine.V3, [], runner=runner)
     assert err.value.kind == "kiro_v3_unsupported_version"
 
 
 def test_non_helper_launch_gate_stays_strict_with_observed_setting(observed):
+    assert "3.2.0" not in kiro_v3_schema.SUPPORTED_KIRO_CLI_VERSIONS
     caps = KiroCapabilities(version="3.2.0", flags=frozenset(), agent_engines=frozenset({"v3"}))
     with pytest.raises(kiro_v3_schema.KiroV3UnsupportedVersionError):
         kiro_v3_launch.require_kiro_v3_admissible(caps, ["fs_read"])
@@ -441,6 +445,7 @@ def test_non_helper_launch_gate_stays_strict_with_observed_setting(observed):
 async def test_installed_agent_launch_stays_strict_with_observed_setting(observed, tmp_path):
     from test.services.test_kiro_v3_launch import PROFILE, _create
 
+    assert "3.2.0" not in kiro_v3_schema.SUPPORTED_KIRO_CLI_VERSIONS
     caps = KiroCapabilities(version="3.2.0", flags=frozenset(), agent_engines=frozenset({"v3"}))
     seen = {}
     with pytest.raises(kiro_v3_schema.KiroV3UnsupportedVersionError):
@@ -450,6 +455,7 @@ async def test_installed_agent_launch_stays_strict_with_observed_setting(observe
 
 @pytest.mark.asyncio
 async def test_default_helper_on_320_is_unsupported(kiro, monkeypatch):
+    assert "3.2.0" not in kiro_v3_schema.SUPPORTED_KIRO_CLI_VERSIONS
     (kiro.fake / "version").write_text("3.2.0")
     monkeypatch.setattr(settings_service, "_load", lambda: {})
     with pytest.raises(kiro.service.EphemeralPolicyError) as err:
@@ -471,6 +477,7 @@ async def test_observed_alone_helper_on_320_is_unverified(kiro, monkeypatch):
 
 @pytest.mark.parametrize("shape", ["malformed", "unreadable", "absent"])
 def test_unreadable_or_absent_settings_file_is_strict(tmp_path, monkeypatch, shape):
+    assert "3.2.0" not in kiro_v3_schema.SUPPORTED_KIRO_CLI_VERSIONS
     settings = tmp_path / "settings.json"
     if shape == "malformed":
         settings.write_text("{invalid json")
